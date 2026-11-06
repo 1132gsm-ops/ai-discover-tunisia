@@ -45,6 +45,12 @@ export default function Home() {
   const [tasks, setTasks] = useState(initialTasks);
   const [apiStatus, setApiStatus] = useState<"loading" | "ok" | "fallback">("loading");
   const [stats, setStats] = useState<{ commands: number; tasks: number }>({ commands: 0, tasks: 0 });
+  const [toast, setToast] = useState<{ message: string; type: "success" | "error" | "info" } | null>(null);
+
+  const showToast = (message: string, type: "success" | "error" | "info" = "success") => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
+  };
 
   useEffect(() => {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
@@ -115,8 +121,9 @@ export default function Home() {
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       setAllCommands((prev) => prev.map((c) => (c.id === id ? { ...c, status } : c)));
+      showToast("تم تحديث الحالة", "success");
     } catch {
-      alert("تعذّر تحديث حالة الأمر");
+      showToast("تعذّر تحديث حالة الأمر", "error");
     }
   };
 
@@ -127,8 +134,9 @@ export default function Home() {
       const res = await fetch(`${apiUrl}/api/ceo/commands/${id}`, { method: "DELETE" });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       setAllCommands((prev) => prev.filter((c) => c.id !== id));
+      showToast("تم حذف الأمر", "success");
     } catch {
-      alert("تعذّر حذف الأمر");
+      showToast("تعذّر حذف الأمر", "error");
     }
   };
 
@@ -679,6 +687,14 @@ export default function Home() {
           </footer>
         </div>
       </section>
+
+      {toast && (
+        <div className="toast-container">
+          <div className={`toast ${toast.type}`}>
+            {toast.message}
+          </div>
+        </div>
+      )}
     </main>
   );
 }
