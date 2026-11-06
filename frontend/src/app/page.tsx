@@ -47,6 +47,13 @@ export default function Home() {
   const [stats, setStats] = useState<{ commands: number; tasks: number }>({ commands: 0, tasks: 0 });
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" | "info" } | null>(null);
 
+  // ========== Projects ==========
+  const [projects, setProjects] = useState<Array<{ id: number; title: string; description: string; department: string; status: string; assigned_to: string }>>([]);
+  const [projectsLoading, setProjectsLoading] = useState(false);
+  const [showTaskModal, setShowTaskModal] = useState(false);
+  const [newTask, setNewTask] = useState({ title: "", description: "", department: "Marketing" });
+  const [projectFilterDept, setProjectFilterDept] = useState<string>("all");
+
   const showToast = (message: string, type: "success" | "error" | "info" = "success") => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 3000);
@@ -140,9 +147,90 @@ export default function Home() {
     }
   };
 
+  // ========== Projects Functions ==========
+  const loadProjects = async () => {
+    setProjectsLoading(true);
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://192.168.0.102:8000";
+    try {
+      const res = await fetch(`${apiUrl}/api/tasks`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      setProjects(Array.isArray(data) ? data : []);
+    } catch {
+      showToast("تعذّر تحميل المشاريع", "error");
+    } finally {
+      setProjectsLoading(false);
+    }
+  };
+
+  const createTask = async () => {
+    if (!newTask.title.trim()) {
+      showToast("العنوان مطلوب", "error");
+      return;
+    }
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://192.168.0.102:8000";
+    try {
+      const res = await fetch(`${apiUrl}/api/tasks`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: newTask.title,
+          description: newTask.description,
+          department: newTask.department,
+          assigned_to: "AI CEO",
+        }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const created = await res.json();
+      setProjects((prev) => [created, ...prev]);
+      setNewTask({ title: "", description: "", department: "Marketing" });
+      setShowTaskModal(false);
+      showToast("تم إنشاء المهمة", "success");
+    } catch {
+      showToast("تعذّر إنشاء المهمة", "error");
+    }
+  };
+
+  const updateTaskStatus = async (id: number, status: string) => {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://192.168.0.102:8000";
+    try {
+      const res = await fetch(`${apiUrl}/api/tasks/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      setProjects((prev) => prev.map((p) => (p.id === id ? { ...p, status } : p)));
+      showToast("تم تحديث حالة المهمة", "success");
+    } catch {
+      showToast("تعذّر تحديث المهمة", "error");
+    }
+  };
+
+  const deleteProject = async (id: number) => {
+    if (!confirm("هل أنت متأكد من حذف هذه المهمة؟")) return;
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://192.168.0.102:8000";
+    try {
+      const res = await fetch(`${apiUrl}/api/tasks/${id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      setProjects((prev) => prev.filter((p) => p.id !== id));
+      showToast("تم حذف المهمة", "success");
+    } catch {
+      showToast("تعذّر حذف المهمة", "error");
+    }
+  };
+
   useEffect(() => {
     if (active === "commands") {
       loadAllCommands();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active]);
+
+  // load projects
+  useEffect(() => {
+    if (active === "projects") {
+      loadProjects();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active]);
@@ -534,14 +622,77 @@ export default function Home() {
 
           {active === "projects" && (
             <section className="panel full-panel">
-              <div className="panel-heading"><div><h3>المشاريع والمهام</h3><p>متابعة أعمال الشركة</p></div><span className="period-label">3 مهام تجريبية</span></div>
-              {tasks.map((task, index) => (
-                <div className="project-row" key={task.title}>
-                  <div className="task-number">0{index + 1}</div>
-                  <div className="task-details"><strong>{task.title}</strong><small>{task.department}</small></div>
-                  <span className="task-status">{task.status}</span>
+              <div className="panel-heading">
+                <div>
+                  <h3>المشاريع والمهام</h3>
+                  <p>متابعة أعمال الشركة · {projects.length} مهمة</p>
                 </div>
-              ))}
+                <button className="primary-button" onClick={() => setShowTaskModal(true)}>
+                  ＋ مهمة جديدة
+                </button>
+              </div>
+
+              <div className="commands-filters">
+                <button className={`filter-btn ${projectFilterDept === "all" ? "active" : ""}`} onClick={() => setProjectFilterDept("all")}>الكل ({projects.length})</button>
+                {["Marketing", "Content Studio", "Finance", "Research", "Engineering", "SEO", "General"].map((d) => {
+                  const count = projects.filter((p) => p.department === d).length;
+                  return (
+                    <button key={d} className={`filter-btn ${projectFilterDept === d ? "active" : ""}`} onClick={() => setProjectFilterDept(d)}>
+                      {d} ({count})
+                    </button>
+                  );
+                })}
+              </div>
+
+              {projectsLoading && (
+                <div className="commands-list">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="skeleton-command-card">
+                      <div className="skeleton skeleton-line short" />
+                      <div className="skeleton skeleton-line long" />
+                      <div className="skeleton skeleton-line medium" />
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {!projectsLoading && projects.length === 0 && (
+                <div className="commands-empty">لا توجد مهام بعد. اضغط "مهمة جديدة" لإضافة أول مهمة.</div>
+              )}
+
+              {!projectsLoading && projects.length > 0 && (
+                <div className="commands-list">
+                  {projects
+                    .filter((p) => projectFilterDept === "all" || p.department === projectFilterDept)
+                    .map((project) => (
+                      <div className="command-card" key={project.id}>
+                        <div className="command-header">
+                          <span className="command-id">#{project.id}</span>
+                          <span className="command-dept">{project.department}</span>
+                          <select
+                            className={`command-status-select status-${project.status}`}
+                            value={project.status}
+                            onChange={(e) => updateTaskStatus(project.id, e.target.value)}
+                          >
+                            <option value="pending">قيد الانتظار</option>
+                            <option value="in_progress">قيد التنفيذ</option>
+                            <option value="done">مكتملة</option>
+                          </select>
+                        </div>
+                        <div className="command-text">{project.title}</div>
+                        {project.description && (
+                          <div className="command-analysis">{project.description}</div>
+                        )}
+                        <div className="command-footer">
+                          <span style={{ fontSize: '11px', color: '#8b8b9a' }}>
+                            مُعيَّن لـ: {project.assigned_to}
+                          </span>
+                          <button className="command-delete" onClick={() => deleteProject(project.id)}>حذف</button>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              )}
             </section>
           )}
 
@@ -697,6 +848,56 @@ export default function Home() {
           </footer>
         </div>
       </section>
+
+      {showTaskModal && (
+        <div className="modal-overlay" onClick={() => setShowTaskModal(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>مهمة جديدة</h3>
+              <button className="modal-close" onClick={() => setShowTaskModal(false)}>✕</button>
+            </div>
+            <div className="modal-body">
+              <label>
+                <span>العنوان *</span>
+                <input
+                  type="text"
+                  value={newTask.title}
+                  onChange={(e) => setNewTask({ ...newTask, title: e.target.value })}
+                  placeholder="مثال: إعداد خطة المحتوى لشهر ديسمبر"
+                />
+              </label>
+              <label>
+                <span>الوصف</span>
+                <textarea
+                  value={newTask.description}
+                  onChange={(e) => setNewTask({ ...newTask, description: e.target.value })}
+                  placeholder="تفاصيل إضافية..."
+                  rows={3}
+                />
+              </label>
+              <label>
+                <span>القسم</span>
+                <select
+                  value={newTask.department}
+                  onChange={(e) => setNewTask({ ...newTask, department: e.target.value })}
+                >
+                  <option value="Marketing">Marketing</option>
+                  <option value="Content Studio">Content Studio</option>
+                  <option value="Finance">Finance</option>
+                  <option value="Research">Research</option>
+                  <option value="Engineering">Engineering</option>
+                  <option value="SEO">SEO</option>
+                  <option value="General">General</option>
+                </select>
+              </label>
+            </div>
+            <div className="modal-footer">
+              <button className="modal-btn cancel" onClick={() => setShowTaskModal(false)}>إلغاء</button>
+              <button className="modal-btn primary" onClick={createTask}>إنشاء</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {toast && (
         <div className="toast-container">
