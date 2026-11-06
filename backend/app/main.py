@@ -297,3 +297,51 @@ def delete_command(command_id: int, db: Session = Depends(get_db)):
     db.delete(cmd)
     db.commit()
     return {"ok": True, "deleted_id": command_id}
+
+# ============ Tasks Extended ============
+
+class TaskUpdate(BaseModel):
+    title: str | None = None
+    description: str | None = None
+    department: str | None = None
+    status: str | None = None
+    assigned_to: str | None = None
+
+@app.get("/api/tasks/{task_id}", response_model=TaskResponse)
+def get_task(task_id: int, db: Session = Depends(get_db)):
+    task = db.query(Task).filter(Task.id == task_id).first()
+    if not task:
+        raise HTTPException(status_code=404, detail="المهمة غير موجودة")
+    return task
+
+@app.patch("/api/tasks/{task_id}", response_model=TaskResponse)
+def update_task(task_id: int, data: TaskUpdate, db: Session = Depends(get_db)):
+    task = db.query(Task).filter(Task.id == task_id).first()
+    if not task:
+        raise HTTPException(status_code=404, detail="المهمة غير موجودة")
+    if data.title is not None:
+        task.title = data.title
+    if data.description is not None:
+        task.description = data.description
+    if data.department is not None:
+        task.department = data.department
+    if data.status is not None:
+        task.status = data.status
+    if data.assigned_to is not None:
+        task.assigned_to = data.assigned_to
+    db.commit()
+    db.refresh(task)
+    return task
+
+@app.delete("/api/tasks/{task_id}")
+def delete_task(task_id: int, db: Session = Depends(get_db)):
+    task = db.query(Task).filter(Task.id == task_id).first()
+    if not task:
+        raise HTTPException(status_code=404, detail="المهمة غير موجودة")
+    db.delete(task)
+    db.commit()
+    return {"ok": True, "deleted_id": task_id}
+
+@app.get("/api/tasks/filter/{department}", response_model=list[TaskResponse])
+def filter_tasks_by_department(department: str, db: Session = Depends(get_db)):
+    return db.query(Task).filter(Task.department == department).order_by(Task.id.desc()).all()
