@@ -547,7 +547,72 @@ export default function Home() {
             </section>
           )}
 
-          {active !== "dashboard" && active !== "team" && active !== "projects" && active !== "commands" && (
+          {active === "settings" && (
+            <section className="panel full-panel">
+              <div className="panel-heading">
+                <div>
+                  <h3>الإعدادات</h3>
+                  <p>معلومات النظام، الروابط، والإحصائيات</p>
+                </div>
+              </div>
+              <div className="settings-grid">
+                <div className="settings-card">
+                  <h4>حالة النظام</h4>
+                  <div className="settings-item">
+                    <span className={`mini-dot ${health && health.api === "ok" ? "online" : "offline"}`} />
+                    <span>Backend</span>
+                    <span className="settings-value">{health && health.api === "ok" ? "يعمل" : "متوقف"}</span>
+                  </div>
+                  <div className="settings-item">
+                    <span className={`mini-dot ${health && health.postgres === "ok" ? "online" : "offline"}`} />
+                    <span>PostgreSQL</span>
+                    <span className="settings-value">{health && health.postgres === "ok" ? "يعمل" : "متوقف"}</span>
+                  </div>
+                  <div className="settings-item">
+                    <span className={`mini-dot ${health && health.redis === "ok" ? "online" : "offline"}`} />
+                    <span>Redis</span>
+                    <span className="settings-value">{health && health.redis === "ok" ? "يعمل" : "متوقف"}</span>
+                  </div>
+                </div>
+                <div className="settings-card">
+                  <h4>الإحصائيات</h4>
+                  <div className="settings-item">
+                    <span>الأوامر</span>
+                    <span className="settings-value">{stats.commands}</span>
+                  </div>
+                  <div className="settings-item">
+                    <span>المهام</span>
+                    <span className="settings-value">{stats.tasks}</span>
+                  </div>
+                  <div className="settings-item">
+                    <span>الفريق</span>
+                    <span className="settings-value">{agents.length}</span>
+                  </div>
+                </div>
+                <div className="settings-card">
+                  <h4>n8n Integration</h4>
+                  <div className="settings-item">
+                    <span>الحالة</span>
+                    <span className="settings-value" style={{ color: '#fbbf24' }}>⚠ 404 (n8n Cloud)</span>
+                  </div>
+                  <div className="settings-note">n8n Cloud يواجه مشكلة في تسجيل الـ webhook. الكود جاهز.</div>
+                </div>
+                <div className="settings-card">
+                  <h4>روابط سريعة</h4>
+                  <div className="settings-item">
+                    <span>API Docs</span>
+                    <a href="http://192.168.0.102:8000/docs" target="_blank" rel="noopener noreferrer" className="settings-link">فتح ↗</a>
+                  </div>
+                  <div className="settings-item">
+                    <span>n8n Cloud</span>
+                    <a href="https://nourmayar.app.n8n.cloud" target="_blank" rel="noopener noreferrer" className="settings-link">فتح ↗</a>
+                  </div>
+                </div>
+              </div>
+            </section>
+          )}
+
+          {active !== "dashboard" && active !== "team" && active !== "projects" && active !== "commands" && active !== "settings" && (
             <section className="panel empty-panel">
               <div className="empty-icon">✦</div>
               <h2>{sectionNames[active]}</h2>
