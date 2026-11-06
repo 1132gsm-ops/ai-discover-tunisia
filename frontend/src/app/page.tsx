@@ -44,6 +44,7 @@ export default function Home() {
   const [showAllAgents, setShowAllAgents] = useState(false);
   const [tasks, setTasks] = useState(initialTasks);
   const [apiStatus, setApiStatus] = useState<"loading" | "ok" | "fallback">("loading");
+  const [stats, setStats] = useState<{ commands: number; tasks: number }>({ commands: 0, tasks: 0 });
 
   useEffect(() => {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
@@ -163,6 +164,24 @@ export default function Home() {
     const interval = setInterval(checkHealth, 30000);
     return () => clearInterval(interval);
   }, []);
+
+  // stats
+  useEffect(() => {
+    if (active !== "settings") return;
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://192.168.0.102:8000";
+    Promise.all([
+      fetch(`${apiUrl}/api/ceo/commands`).then(r => r.json()),
+      fetch(`${apiUrl}/api/tasks`).then(r => r.json()),
+    ])
+      .then(([cmds, tasks]) => {
+        setStats({
+          commands: Array.isArray(cmds) ? cmds.length : 0,
+          tasks: Array.isArray(tasks) ? tasks.length : 0,
+        });
+      })
+      .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active]);
 
   const submitCommand = async () => {
     if (!commandText.trim() || submitStatus === "sending") return;
