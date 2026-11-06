@@ -1,0 +1,59 @@
+# ==== Python ====
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+.venv/
+venv/
+env/
+ENV/
+*.log
+
+# ==== Node / Next.js ====
+node_modules/
+.next/
+out/
+build/
+.DS_Store
+*.pem
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# ==== Environment / Secrets ====
+.env
+.env.local
+.env.*.local
+.env.production
+*.env
+!*.env.example
+
+# ==== Backups (نظّفناهم) ====
+*.bak
+*.bak.*
+*~
+*.swp
+*.swo
+.backup/
+
+# ==== IDE ====
+.vscode/
+.idea/
+*.iml
+
+# ==== PM2 ====
+.pm2/
+logs/
+
+# ==== OS ====
+Thumbs.db
+
+# ==== Backup folders ====
+backup-dashboard/
+backup-npm/
+backups/

@@ -1,0 +1,29 @@
+services:
+  postgres:
+    image: postgres:17
+    container_name: aidt-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: aidt_db
+      POSTGRES_USER: aidt_user
+      POSTGRES_PASSWORD: "CHANGE_THIS_PASSWORD"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:5432:5432"
+    mem_limit: 768m
+
+  redis:
+    image: redis:7-alpine
+    container_name: aidt-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --maxmemory 128mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    ports:
+      - "127.0.0.1:6379:6379"
+    mem_limit: 192m
+
+volumes:
+  postgres_data:
+  redis_data:
