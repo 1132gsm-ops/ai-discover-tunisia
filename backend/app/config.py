@@ -8,6 +8,7 @@ class Settings(BaseSettings):
     DB_PASSWORD: str
     REDIS_URL: str = "redis://127.0.0.1:6379/0"
     OPENROUTER_API_KEY: str = ""
+    N8N_WEBHOOK_URL: str = ""
 
     model_config = SettingsConfigDict(
         env_file=".env",

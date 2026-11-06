@@ -8,6 +8,7 @@ import redis
 import os
 import json
 from openai import OpenAI
+import httpx
 
 from app.config import settings
 from app.database import Base, engine, get_db
@@ -199,8 +200,28 @@ def _analyze_fallback(text: str) -> tuple[str, str]:
     return analysis, department
 
 
+async def send_to_n8n(command_id: int, text: str, department: str, analysis: str):
+    """نبعثوا الأمر لـ n8n."""
+    if not settings.N8N_WEBHOOK_URL:
+        return
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            await client.post(
+                settings.N8N_WEBHOOK_URL,
+                json={
+                    "command_id": command_id,
+                    "text": text,
+                    "department": department,
+                    "analysis": analysis,
+                    "source": "AI Discover Tunisia",
+                },
+            )
+    except Exception as e:
+        print(f"[n8n webhook error] {type(e).__name__}: {e}")
+
+
 @app.post("/api/ceo/command", response_model=CommandResponse)
-def ceo_command(data: CommandCreate, db: Session = Depends(get_db)):
+async def ceo_command(data: CommandCreate, db: Session = Depends(get_db)):
     from app.models import Command
 
     if not data.text or not data.text.strip():
@@ -217,6 +238,9 @@ def ceo_command(data: CommandCreate, db: Session = Depends(get_db)):
     db.add(command)
     db.commit()
     db.refresh(command)
+
+    await send_to_n8n(command.id, command.text, command.department, command.analysis)
+
     return command
 
 
