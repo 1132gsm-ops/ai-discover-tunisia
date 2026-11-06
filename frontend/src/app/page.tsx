@@ -138,6 +138,32 @@ export default function Home() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active]);
 
+  // ========== System Health ==========
+  const [health, setHealth] = useState<{
+    api: string;
+    postgres: string;
+    redis: string;
+  } | null>(null);
+
+  useEffect(() => {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://192.168.0.102:8000";
+
+    const checkHealth = async () => {
+      try {
+        const res = await fetch(`${apiUrl}/health`, { cache: "no-store" });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        setHealth(data);
+      } catch {
+        setHealth({ api: "error", postgres: "unknown", redis: "unknown" });
+      }
+    };
+
+    checkHealth();
+    const interval = setInterval(checkHealth, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
   const submitCommand = async () => {
     if (!commandText.trim() || submitStatus === "sending") return;
     setSubmitStatus("sending");
@@ -204,10 +230,29 @@ export default function Home() {
 
         <div className="sidebar-bottom">
           <div className="system-status">
-            <span className="status-dot" />
-            <div>
-              <strong>النظام جاهز</strong>
-              <small>الواجهة تعمل محلياً</small>
+            <div className="system-status-title">
+              <span className={`status-dot ${health && health.api === "ok" ? "online" : "offline"}`} />
+              <strong>
+                {health && health.api === "ok" ? "النظام يعمل" : health ? "فمّا مشكل" : "جاري الفحص..."}
+              </strong>
+            </div>
+            <div className="system-status-grid">
+              <div className="system-status-item">
+                <span className={`mini-dot ${health && health.api === "ok" ? "online" : "offline"}`} />
+                <span>Backend</span>
+              </div>
+              <div className="system-status-item">
+                <span className={`mini-dot ${health && health.postgres === "ok" ? "online" : "offline"}`} />
+                <span>PostgreSQL</span>
+              </div>
+              <div className="system-status-item">
+                <span className={`mini-dot ${health && health.redis === "ok" ? "online" : "offline"}`} />
+                <span>Redis</span>
+              </div>
+              <div className="system-status-item">
+                <span className="mini-dot online" />
+                <span>Frontend</span>
+              </div>
             </div>
           </div>
           <div className="user-profile">
