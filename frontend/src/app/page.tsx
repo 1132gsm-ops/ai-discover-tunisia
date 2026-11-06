@@ -569,7 +569,17 @@ export default function Home() {
                 })}
               </div>
 
-              {commandsLoading && <div className="commands-empty">جاري التحميل...</div>}
+              {commandsLoading && (
+  <div className="commands-list">
+    {[1, 2, 3].map((i) => (
+      <div key={i} className="skeleton-command-card">
+        <div className="skeleton skeleton-line short" />
+        <div className="skeleton skeleton-line long" />
+        <div className="skeleton skeleton-line medium" />
+      </div>
+    ))}
+  </div>
+)}
               {commandsError && <div className="commands-empty error">{commandsError}</div>}
               {!commandsLoading && !commandsError && allCommands.length === 0 && (
                 <div className="commands-empty">لا توجد أوامر بعد. اكتب أمرك في لوحة القيادة.</div>
