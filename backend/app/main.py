@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import text
 import redis
 import os
+import logging
 import json
 from openai import OpenAI
 import httpx
@@ -13,6 +14,10 @@ import httpx
 from app.config import settings
 from app.database import Base, engine, get_db
 from app.models import Task
+
+import logging
+logger = logging.getLogger("aidt")
+logging.basicConfig(level=logging.INFO)
 
 redis_client = redis.Redis.from_url(
     settings.REDIS_URL,
@@ -202,11 +207,14 @@ def _analyze_fallback(text: str) -> tuple[str, str]:
 
 async def send_to_n8n(command_id: int, text: str, department: str, analysis: str):
     """نبعثوا الأمر لـ n8n."""
+    logger.info(f"[n8n] send_to_n8n called: command_id={command_id}, department={department}")
     if not settings.N8N_WEBHOOK_URL:
+        logger.warning("[n8n] N8N_WEBHOOK_URL فارغ، تخطّينا")
         return
     try:
+        logger.info(f"[n8n] نبعثوا لـ {settings.N8N_WEBHOOK_URL}")
         async with httpx.AsyncClient(timeout=5.0) as client:
-            await client.post(
+            resp = await client.post(
                 settings.N8N_WEBHOOK_URL,
                 json={
                     "command_id": command_id,
@@ -216,8 +224,9 @@ async def send_to_n8n(command_id: int, text: str, department: str, analysis: str
                     "source": "AI Discover Tunisia",
                 },
             )
+            logger.info(f"[n8n] ✅ تم! status={resp.status_code}, response={resp.text[:100]}")
     except Exception as e:
-        print(f"[n8n webhook error] {type(e).__name__}: {e}")
+        logger.error(f"[n8n] ❌ خطأ: {type(e).__name__}: {e}")
 
 
 @app.post("/api/ceo/command", response_model=CommandResponse)
