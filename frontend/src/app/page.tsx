@@ -14,12 +14,12 @@ const navigation = [
 ];
 
 const agents = [
-  { name: "AI CEO", role: "المدير التنفيذي", icon: "👨‍💼", color: "purple", status: "نشط", task: "متابعة استراتيجية الشركة" },
-  { name: "Marketing Manager", role: "مدير التسويق", icon: "📈", color: "blue", status: "نشط", task: "إعداد خطة التسويق" },
-  { name: "Content Creator", role: "صانع المحتوى", icon: "🎬", color: "pink", status: "نشط", task: "تحضير أفكار الفيديوهات" },
-  { name: "Video Editor", role: "مونتير الفيديو", icon: "🎞️", color: "orange", status: "في الانتظار", task: "في انتظار مشروع جديد" },
-  { name: "SEO Specialist", role: "خبير SEO", icon: "🔎", color: "green", status: "نشط", task: "تحليل الكلمات المفتاحية" },
-  { name: "Social Media Manager", role: "مدير الشبكات الاجتماعية", icon: "📱", color: "cyan", status: "في الانتظار", task: "في انتظار المحتوى" },
+  { name: "AI CEO", role: "المدير التنفيذي", icon: "👨‍💼", color: "purple", status: "نشط", task: "متابعة استراتيجية الشركة", department: "General", completed: 12, pending: 2 },
+  { name: "Marketing Manager", role: "مدير التسويق", icon: "📈", color: "blue", status: "نشط", task: "إعداد خطة التسويق", department: "Marketing", completed: 8, pending: 3 },
+  { name: "Content Creator", role: "صانع المحتوى", icon: "🎬", color: "pink", status: "نشط", task: "تحضير أفكار الفيديوهات", department: "Content Studio", completed: 5, pending: 4 },
+  { name: "Video Editor", role: "مونتير الفيديو", icon: "🎞️", color: "orange", status: "في الانتظار", task: "في انتظار مشروع جديد", department: "Content Studio", completed: 3, pending: 0 },
+  { name: "SEO Specialist", role: "خبير SEO", icon: "🔎", color: "green", status: "نشط", task: "تحليل الكلمات المفتاحية", department: "SEO", completed: 6, pending: 1 },
+  { name: "Social Media Manager", role: "مدير الشبكات الاجتماعية", icon: "📱", color: "cyan", status: "في الانتظار", task: "في انتظار المحتوى", department: "Marketing", completed: 4, pending: 0 },
 ];
 
 const initialTasks = [
@@ -457,18 +457,69 @@ export default function Home() {
           {active === "team" && (
             <section className="panel full-panel">
               <div className="panel-heading">
-                <div><h3>موظفو الشركة</h3><p>الفريق الافتراضي لـ AI Discover Tunisia</p></div>
+                <div>
+                  <h3>فريق الذكاء الاصطناعي</h3>
+                  <p>الفريق الافتراضي لـ AI Discover Tunisia · 6 موظفين</p>
+                </div>
                 <span className="period-label">6 موظفين</span>
               </div>
-              <div className="agents-grid">
-                {agents.map((agent) => (
-                  <div className="agent-card" key={agent.name}>
-                    <div className={`agent-avatar large ${agent.color}`}>{agent.icon}</div>
-                    <h3>{agent.name}</h3><p>{agent.role}</p>
-                    <div className={`agent-status ${agent.status === "نشط" ? "online" : "waiting"}`}><i /> {agent.status}</div>
-                    <div className="agent-task">{agent.task}</div>
-                  </div>
-                ))}
+
+              <div className="agents-detail-grid">
+                {agents.map((agent) => {
+                  const deptCommands = allCommands.filter(c => c.department === agent.department).length;
+                  return (
+                    <div className="agent-detail-card" key={agent.name}>
+                      <div className="agent-detail-header">
+                        <div className={`agent-avatar large ${agent.color}`}>{agent.icon}</div>
+                        <div className="agent-detail-info">
+                          <h3>{agent.name}</h3>
+                          <p>{agent.role}</p>
+                        </div>
+                        <div className={`agent-status ${agent.status === "نشط" ? "online" : "waiting"}`}>
+                          <i /> {agent.status}
+                        </div>
+                      </div>
+
+                      <div className="agent-detail-task">
+                        <span className="agent-detail-label">المهمة الحالية</span>
+                        <span className="agent-detail-value">{agent.task}</span>
+                      </div>
+
+                      <div className="agent-detail-dept">
+                        <span className="agent-detail-label">القسم</span>
+                        <span className="agent-dept-badge">{agent.department}</span>
+                      </div>
+
+                      <div className="agent-detail-stats">
+                        <div className="agent-stat">
+                          <span className="agent-stat-number">{agent.completed}</span>
+                          <span className="agent-stat-label">مكتملة</span>
+                        </div>
+                        <div className="agent-stat">
+                          <span className="agent-stat-number">{agent.pending}</span>
+                          <span className="agent-stat-label">قيد التنفيذ</span>
+                        </div>
+                        <div className="agent-stat">
+                          <span className="agent-stat-number">{deptCommands}</span>
+                          <span className="agent-stat-label">أوامر القسم</span>
+                        </div>
+                      </div>
+
+                      <button
+                        className="agent-action-btn"
+                        onClick={() => {
+                          setActive("dashboard");
+                          setTimeout(() => {
+                            const el = document.querySelector(".ceo-composer-input");
+                            if (el) (el as HTMLTextAreaElement).focus();
+                          }, 100);
+                        }}
+                      >
+                        تعيين مهمة ←
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
             </section>
           )}

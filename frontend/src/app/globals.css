@@ -579,3 +579,114 @@ h1 { font-size: 25px; letter-spacing: -.5px; margin: 11px 0 7px; font-weight: 75
   font-size: 14px;
   margin-bottom: 2px;
 }
+
+/* ============ Team Detail Page ============ */
+.agents-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 16px;
+  margin-top: 20px;
+}
+.agent-detail-card {
+  background: linear-gradient(135deg, rgba(20, 20, 40, 0.7), rgba(30, 25, 60, 0.7));
+  border: 1px solid rgba(139, 92, 246, 0.2);
+  border-radius: 16px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  transition: border-color 0.2s, transform 0.2s;
+}
+.agent-detail-card:hover {
+  border-color: rgba(139, 92, 246, 0.5);
+  transform: translateY(-2px);
+}
+.agent-detail-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.agent-detail-info {
+  flex: 1;
+  min-width: 0;
+}
+.agent-detail-info h3 {
+  color: #f0f0f5;
+  font-size: 16px;
+  margin: 0 0 2px;
+}
+.agent-detail-info p {
+  color: #a1a1aa;
+  font-size: 12px;
+  margin: 0;
+}
+.agent-detail-task,
+.agent-detail-dept {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  background: rgba(10, 10, 25, 0.5);
+  border-radius: 10px;
+}
+.agent-detail-label {
+  color: #8b8b9a;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.agent-detail-value {
+  color: #d4d4d8;
+  font-size: 13px;
+}
+.agent-dept-badge {
+  display: inline-block;
+  width: fit-content;
+  padding: 3px 10px;
+  background: rgba(139, 92, 246, 0.2);
+  color: #c4b5fd;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.agent-detail-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.agent-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 10px 4px;
+  background: rgba(139, 92, 246, 0.08);
+  border-radius: 10px;
+}
+.agent-stat-number {
+  color: #c4b5fd;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1;
+}
+.agent-stat-label {
+  color: #8b8b9a;
+  font-size: 10px;
+  margin-top: 4px;
+  text-align: center;
+}
+.agent-action-btn {
+  background: linear-gradient(135deg, #8b5cf6, #6366f1);
+  color: white;
+  border: none;
+  padding: 10px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.1s;
+  font-family: inherit;
+}
+.agent-action-btn:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
