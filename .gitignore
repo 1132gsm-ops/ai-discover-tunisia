@@ -58,3 +58,4 @@ backup-dashboard/
 backup-npm/
 backups/
 *.backup
+*.broken.*
