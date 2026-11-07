@@ -345,3 +345,62 @@ def delete_task(task_id: int, db: Session = Depends(get_db)):
 @app.get("/api/tasks/filter/{department}", response_model=list[TaskResponse])
 def filter_tasks_by_department(department: str, db: Session = Depends(get_db)):
     return db.query(Task).filter(Task.department == department).order_by(Task.id.desc()).all()
+
+# ============ CSV Export ============
+
+from fastapi.responses import StreamingResponse
+import io
+import csv
+
+@app.get("/api/export/commands.csv")
+def export_commands_csv(db: Session = Depends(get_db)):
+    from app.models import Command
+    commands = db.query(Command).order_by(Command.id.desc()).all()
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["ID", "Text", "Department", "Analysis", "Status", "Created At"])
+
+    for cmd in commands:
+        writer.writerow([
+            cmd.id,
+            cmd.text,
+            cmd.department,
+            cmd.analysis,
+            cmd.status,
+            cmd.created_at.isoformat() if cmd.created_at else "",
+        ])
+
+    output.seek(0)
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv; charset=utf-8-sig",
+        headers={"Content-Disposition": "attachment; filename=commands.csv"},
+    )
+
+
+@app.get("/api/export/tasks.csv")
+def export_tasks_csv(db: Session = Depends(get_db)):
+    tasks = db.query(Task).order_by(Task.id.desc()).all()
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["ID", "Title", "Description", "Department", "Status", "Assigned To", "Created At"])
+
+    for task in tasks:
+        writer.writerow([
+            task.id,
+            task.title,
+            task.description,
+            task.department,
+            task.status,
+            task.assigned_to,
+            task.created_at.isoformat() if task.created_at else "",
+        ])
+
+    output.seek(0)
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv; charset=utf-8-sig",
+        headers={"Content-Disposition": "attachment; filename=tasks.csv"},
+    )

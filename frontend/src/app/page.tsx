@@ -39,6 +39,16 @@ const sectionNames: Record<string, string> = {
   settings: "الإعدادات",
 };
 
+function formatDateAndTime(date: Date) {
+  const days = ["الأحد", "الإثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
+  const months = ["يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو", "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"];
+  const d = `${days[date.getDay()]}، ${date.getDate()} ${months[date.getMonth()]} ${date.getFullYear()}`;
+  const h = String(date.getHours()).padStart(2, "0");
+  const m = String(date.getMinutes()).padStart(2, "0");
+  const s = String(date.getSeconds()).padStart(2, "0");
+  return `${d} · ${h}:${m}:${s}`;
+}
+
 export default function Home() {
   const [active, setActive] = useState("dashboard");
   const [showAllAgents, setShowAllAgents] = useState(false);
@@ -46,6 +56,7 @@ export default function Home() {
   const [apiStatus, setApiStatus] = useState<"loading" | "ok" | "fallback">("loading");
   const [stats, setStats] = useState<{ commands: number; tasks: number }>({ commands: 0, tasks: 0 });
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" | "info" } | null>(null);
+  const [now, setNow] = useState(new Date());
 
   // ========== Projects ==========
   const [projects, setProjects] = useState<Array<{ id: number; title: string; description: string; department: string; status: string; assigned_to: string }>>([]);
@@ -58,6 +69,11 @@ export default function Home() {
     setToast({ message, type });
     setTimeout(() => setToast(null), 3000);
   };
+
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
@@ -389,7 +405,7 @@ export default function Home() {
             <strong>{sectionNames[active]}</strong>
           </div>
           <div className="top-actions">
-            <div className="date-label">الأربعاء، 4 نوفمبر 2026</div>
+            <div className="date-label">{formatDateAndTime(now)}</div>
             <button className="icon-button" aria-label="الإشعارات">♧<i /></button>
             <div className="top-avatar">M</div>
           </div>
@@ -627,9 +643,18 @@ export default function Home() {
                   <h3>المشاريع والمهام</h3>
                   <p>متابعة أعمال الشركة · {projects.length} مهمة</p>
                 </div>
-                <button className="primary-button" onClick={() => setShowTaskModal(true)}>
-                  ＋ مهمة جديدة
-                </button>
+                <div style={{ display: "flex", gap: "8px" }}>
+                  <a
+                    href={(process.env.NEXT_PUBLIC_API_URL || "http://192.168.0.102:8000") + "/api/export/tasks.csv"}
+                    className="secondary-button"
+                    download
+                  >
+                    تصدير CSV ⬇
+                  </a>
+                  <button className="primary-button" onClick={() => setShowTaskModal(true)}>
+                    ＋ مهمة جديدة
+                  </button>
+                </div>
               </div>
 
               <div className="commands-filters">
@@ -703,9 +728,18 @@ export default function Home() {
                   <h3>أوامر AI CEO</h3>
                   <p>كل الأوامر اللي استقبلها المدير التنفيذي</p>
                 </div>
-                <button className="primary-button" onClick={loadAllCommands} disabled={commandsLoading}>
-                  {commandsLoading ? "..." : "تحديث ↻"}
-                </button>
+                <div style={{ display: "flex", gap: "8px" }}>
+                  <a
+                    href={(process.env.NEXT_PUBLIC_API_URL || "http://192.168.0.102:8000") + "/api/export/commands.csv"}
+                    className="secondary-button"
+                    download
+                  >
+                    تصدير CSV ⬇
+                  </a>
+                  <button className="primary-button" onClick={loadAllCommands} disabled={commandsLoading}>
+                    {commandsLoading ? "..." : "تحديث ↻"}
+                  </button>
+                </div>
               </div>
 
               <div className="commands-filters">
