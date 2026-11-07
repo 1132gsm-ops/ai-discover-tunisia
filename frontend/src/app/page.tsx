@@ -36,6 +36,7 @@ const sectionNames: Record<string, string> = {
   marketing: "التسويق والنمو",
   finance: "المالية والأرباح",
   commands: "أوامر AI CEO",
+  "agent-detail": "تفاصيل الموظف",
   settings: "الإعدادات",
 };
 
@@ -64,6 +65,7 @@ export default function Home() {
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [newTask, setNewTask] = useState({ title: "", description: "", department: "Marketing" });
   const [projectFilterDept, setProjectFilterDept] = useState<string>("all");
+  const [selectedAgent, setSelectedAgent] = useState<typeof agents[0] | null>(null);
 
   const showToast = (message: string, type: "success" | "error" | "info" = "success") => {
     setToast({ message, type });
@@ -221,6 +223,11 @@ export default function Home() {
     } catch {
       showToast("تعذّر تحديث المهمة", "error");
     }
+  };
+
+  const selectAgent = (agent: typeof agents[0]) => {
+    setSelectedAgent(agent);
+    setActive("agent-detail");
   };
 
   const deleteProject = async (id: number) => {
@@ -580,7 +587,12 @@ export default function Home() {
                 {agents.map((agent) => {
                   const deptCommands = allCommands.filter(c => c.department === agent.department).length;
                   return (
-                    <div className="agent-detail-card" key={agent.name}>
+                    <div
+                      className="agent-detail-card"
+                      key={agent.name}
+                      onClick={() => selectAgent(agent)}
+                      style={{ cursor: "pointer" }}
+                    >
                       <div className="agent-detail-header">
                         <div className={`agent-avatar large ${agent.color}`}>{agent.icon}</div>
                         <div className="agent-detail-info">
@@ -632,6 +644,93 @@ export default function Home() {
                     </div>
                   );
                 })}
+              </div>
+            </section>
+          )}
+
+          {active === "agent-detail" && selectedAgent && (
+            <section className="panel full-panel">
+              <div className="panel-heading">
+                <div>
+                  <h3>{selectedAgent.name}</h3>
+                  <p>{selectedAgent.role} · {selectedAgent.department}</p>
+                </div>
+                <button className="secondary-button" onClick={() => setActive("team")}>
+                  ← رجوع للفريق
+                </button>
+              </div>
+
+              <div className="agent-detail-page">
+                <div className="agent-detail-profile">
+                  <div className={`agent-avatar large ${selectedAgent.color}`} style={{ fontSize: "48px", width: "80px", height: "80px" }}>
+                    {selectedAgent.icon}
+                  </div>
+                  <div className={`agent-status ${selectedAgent.status === "نشط" ? "online" : "waiting"}`} style={{ marginTop: "12px" }}>
+                    <i /> {selectedAgent.status}
+                  </div>
+                </div>
+
+                <div className="agent-detail-stats-big">
+                  <div className="agent-stat-big">
+                    <span className="agent-stat-big-number">{selectedAgent.completed}</span>
+                    <span className="agent-stat-big-label">مهام مكتملة</span>
+                  </div>
+                  <div className="agent-stat-big">
+                    <span className="agent-stat-big-number">{selectedAgent.pending}</span>
+                    <span className="agent-stat-big-label">قيد التنفيذ</span>
+                  </div>
+                  <div className="agent-stat-big">
+                    <span className="agent-stat-big-number">{allCommands.filter(c => c.department === selectedAgent.department).length}</span>
+                    <span className="agent-stat-big-label">أوامر القسم</span>
+                  </div>
+                </div>
+
+                <div className="agent-detail-sections">
+                  <div className="agent-detail-section">
+                    <h4>المهمة الحالية</h4>
+                    <div className="agent-detail-task-box">{selectedAgent.task}</div>
+                  </div>
+
+                  <div className="agent-detail-section">
+                    <h4>آخر الأوامر في {selectedAgent.department}</h4>
+                    {allCommands.filter(c => c.department === selectedAgent.department).length === 0 ? (
+                      <div className="commands-empty">لا توجد أوامر بعد.</div>
+                    ) : (
+                      <div className="agent-commands-list">
+                        {allCommands
+                          .filter(c => c.department === selectedAgent.department)
+                          .slice(0, 5)
+                          .map(c => (
+                            <div key={c.id} className="agent-command-row">
+                              <span className="command-id">#{c.id}</span>
+                              <span className="agent-command-text">{c.text}</span>
+                              <span className={`command-status-select status-${c.status}`}>{c.status}</span>
+                            </div>
+                          ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="agent-detail-section">
+                    <h4>المهام</h4>
+                    {projects.filter(p => p.department === selectedAgent.department).length === 0 ? (
+                      <div className="commands-empty">لا توجد مهام بعد.</div>
+                    ) : (
+                      <div className="agent-commands-list">
+                        {projects
+                          .filter(p => p.department === selectedAgent.department)
+                          .slice(0, 5)
+                          .map(p => (
+                            <div key={p.id} className="agent-command-row">
+                              <span className="command-id">#{p.id}</span>
+                              <span className="agent-command-text">{p.title}</span>
+                              <span className={`command-status-select status-${p.status}`}>{p.status}</span>
+                            </div>
+                          ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
             </section>
           )}
@@ -866,7 +965,7 @@ export default function Home() {
             </section>
           )}
 
-          {active !== "dashboard" && active !== "team" && active !== "projects" && active !== "commands" && active !== "settings" && (
+          {active !== "dashboard" && active !== "team" && active !== "projects" && active !== "commands" && active !== "settings" && active !== "agent-detail" && (
             <section className="panel empty-panel">
               <div className="empty-icon">✦</div>
               <h2>{sectionNames[active]}</h2>
