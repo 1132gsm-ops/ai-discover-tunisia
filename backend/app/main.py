@@ -404,3 +404,32 @@ def export_tasks_csv(db: Session = Depends(get_db)):
         media_type="text/csv; charset=utf-8-sig",
         headers={"Content-Disposition": "attachment; filename=tasks.csv"},
     )
+
+# ============ Auth ============
+
+from app.auth import create_access_token, require_auth
+from pydantic import BaseModel as PydanticBaseModel
+
+class LoginRequest(PydanticBaseModel):
+    password: str
+
+
+class LoginResponse(PydanticBaseModel):
+    access_token: str
+    token_type: str = "bearer"
+
+
+@app.post("/api/auth/login", response_model=LoginResponse)
+def login(data: LoginRequest):
+    if not settings.ADMIN_PASSWORD:
+        raise HTTPException(status_code=500, detail="ADMIN_PASSWORD غير مضبوط")
+    if data.password != settings.ADMIN_PASSWORD:
+        raise HTTPException(status_code=401, detail="كلمة السر غلط")
+
+    token = create_access_token(subject="admin")
+    return LoginResponse(access_token=token)
+
+
+@app.get("/api/auth/me")
+def me(payload: dict = Depends(require_auth)):
+    return {"user": payload.get("sub"), "exp": payload.get("exp")}

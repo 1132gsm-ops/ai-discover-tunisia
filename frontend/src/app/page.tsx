@@ -66,10 +66,53 @@ export default function Home() {
   const [newTask, setNewTask] = useState({ title: "", description: "", department: "Marketing" });
   const [projectFilterDept, setProjectFilterDept] = useState<string>("all");
   const [selectedAgent, setSelectedAgent] = useState<typeof agents[0] | null>(null);
+  const [authToken, setAuthToken] = useState<string | null>(null);
+  const [authChecked, setAuthChecked] = useState(false);
+  const [passwordInput, setPasswordInput] = useState("");
+  const [loginError, setLoginError] = useState("");
+  const [loginLoading, setLoginLoading] = useState(false);
 
   const showToast = (message: string, type: "success" | "error" | "info" = "success") => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 3000);
+  };
+
+  // auth check
+  useEffect(() => {
+    const stored = typeof window !== "undefined" ? localStorage.getItem("aidt_token") : null;
+    if (stored) {
+      setAuthToken(stored);
+    }
+    setAuthChecked(true);
+  }, []);
+
+  const handleLogin = async () => {
+    setLoginLoading(true);
+    setLoginError("");
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://192.168.0.102:8000";
+    try {
+      const res = await fetch(`${apiUrl}/api/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: passwordInput }),
+      });
+      if (!res.ok) throw new Error("كلمة السر غلط");
+      const data = await res.json();
+      localStorage.setItem("aidt_token", data.access_token);
+      setAuthToken(data.access_token);
+      setPasswordInput("");
+      showToast("مرحباً بك", "success");
+    } catch (e: any) {
+      setLoginError(e.message || "فشل تسجيل الدخول");
+    } finally {
+      setLoginLoading(false);
+    }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("aidt_token");
+    setAuthToken(null);
+    showToast("تم تسجيل الخروج", "info");
   };
 
   useEffect(() => {
@@ -331,6 +374,65 @@ export default function Home() {
     }
   };
 
+  // صفحة تسجيل الدخول
+  if (!authChecked) {
+    return (
+      <main className="app-shell" style={{ justifyContent: "center", alignItems: "center" }}>
+        <div className="login-container">
+          <div className="login-card">
+            <div className="login-logo">AI</div>
+            <h1>جاري التحميل...</h1>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  if (!authToken) {
+    return (
+      <main className="app-shell" style={{ justifyContent: "center", alignItems: "center" }}>
+        <div className="login-container">
+          <div className="login-card">
+            <div className="login-logo">AI</div>
+            <h1>AI DISCOVER TUNISIA</h1>
+            <p className="login-subtitle">مركز قيادة الشركة الذكية</p>
+
+            <form
+              className="login-form"
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleLogin();
+              }}
+            >
+              <label>
+                <span>كلمة السر</span>
+                <input
+                  type="password"
+                  value={passwordInput}
+                  onChange={(e) => setPasswordInput(e.target.value)}
+                  placeholder="••••••••"
+                  autoFocus
+                />
+              </label>
+
+              {loginError && <div className="login-error">{loginError}</div>}
+
+              <button
+                type="submit"
+                className="login-btn"
+                disabled={loginLoading || !passwordInput}
+              >
+                {loginLoading ? "..." : "دخول →"}
+              </button>
+            </form>
+
+            <div className="login-footer">AI Discover Tunisia © 2026</div>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
   return (
     <main className="app-shell">
       <aside className="sidebar">
@@ -393,6 +495,13 @@ export default function Home() {
               </div>
             </div>
           </div>
+          <button
+            className="logout-button"
+            onClick={handleLogout}
+            style={{ marginBottom: "8px" }}
+          >
+            ⏻ تسجيل الخروج
+          </button>
           <div className="user-profile">
             <div className="user-avatar">M</div>
             <div className="user-info">
