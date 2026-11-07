@@ -51,6 +51,7 @@ function formatDateAndTime(date: Date) {
 }
 
 export default function Home() {
+
   const [active, setActive] = useState("dashboard");
   const [showAllAgents, setShowAllAgents] = useState(false);
   const [tasks, setTasks] = useState(initialTasks);
@@ -453,7 +454,7 @@ export default function Home() {
           <span className="workspace-arrow">⌄</span>
         </div>
 
-        <div className="nav-label">القائمة الرئيسية</div>
+        <div className="nav-label">{"القائمة الرئيسية"}</div>
         <nav className="navigation">
           {navigation.map((item) => (
             <button
@@ -495,18 +496,19 @@ export default function Home() {
               </div>
             </div>
           </div>
+          
           <button
             className="logout-button"
             onClick={handleLogout}
             style={{ marginBottom: "8px" }}
           >
-            ⏻ تسجيل الخروج
+            ⏻ {"تسجيل الخروج"}
           </button>
           <div className="user-profile">
             <div className="user-avatar">M</div>
             <div className="user-info">
-              <strong>مدير الشركة</strong>
-              <small>Administrator</small>
+              <strong>{"مدير الشركة"}</strong>
+              <small>{"Administrator"}</small>
             </div>
             <span className="more-icon">•••</span>
           </div>
@@ -516,7 +518,7 @@ export default function Home() {
       <section className="main-area">
         <header className="topbar">
           <div className="breadcrumb">
-            <span>AI Discover Tunisia</span>
+            <span>{"AI Discover Tunisia"}</span>
             <span className="breadcrumb-separator">/</span>
             <strong>{sectionNames[active]}</strong>
           </div>
