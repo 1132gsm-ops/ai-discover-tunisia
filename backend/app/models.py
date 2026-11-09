@@ -12,6 +12,8 @@ class Task(Base):
     department: Mapped[str] = mapped_column(String(100), default="General")
     status: Mapped[str] = mapped_column(String(30), default="pending")
     assigned_to: Mapped[str] = mapped_column(String(100), default="AI CEO")
+    retry_count: Mapped[int] = mapped_column(default=0)
+    last_error: Mapped[str] = mapped_column(Text, default="")
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc)

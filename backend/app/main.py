@@ -40,9 +40,12 @@ async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)
     # نبداو Auto-Loop
     loop_task = asyncio.create_task(auto_loop())
+    # نبداو Daily Scheduler
+    scheduler_task = asyncio.create_task(daily_scheduler())
     yield
-    # نوقّفوا Auto-Loop
+    # نوقّفوا Auto-Loop + Scheduler
     loop_task.cancel()
+    scheduler_task.cancel()
     redis_client.close()
 
 app = FastAPI(
@@ -558,3 +561,90 @@ def login(data: LoginRequest):
 @app.get("/api/auth/me")
 def me(payload: dict = Depends(require_auth)):
     return {"user": payload.get("sub"), "exp": payload.get("exp")}
+
+
+# ============ Reports Endpoints (Manual) ============
+
+@app.get("/api/reports/daily")
+def get_daily_report():
+    report = redis_client.get("aidt:daily_report:latest")
+    if not report:
+        return {"report": "لم يتم توليد تقرير بعد."}
+    return {"report": report}
+
+
+@app.post("/api/reports/generate")
+async def generate_report_now():
+    report = await generate_daily_report()
+    return {"report": report}
+
+
+# ============ Daily Report Function (Manual) ============
+
+from datetime import datetime, timezone, timedelta
+from collections import Counter
+
+async def generate_daily_report():
+    """نولّدوا تقرير يومي عن أداء الشركة."""
+    from app.models import Task, Command
+    from app.database import SessionLocal
+    
+    db = SessionLocal()
+    try:
+        since = datetime.now(timezone.utc) - timedelta(hours=24)
+        tasks_24h = db.query(Task).filter(Task.created_at >= since).all()
+        commands_24h = db.query(Command).filter(Command.created_at >= since).all()
+        
+        total_tasks = len(tasks_24h)
+        done = len([t for t in tasks_24h if t.status == "done"])
+        failed = len([t for t in tasks_24h if t.status == "failed"])
+        in_progress = len([t for t in tasks_24h if t.status == "in_progress"])
+        
+        report = f"""📊 التقرير اليومي — AI Discover Tunisia
+التاريخ: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M')} UTC
+
+📥 الأوامر الجديدة: {len(commands_24h)}
+📋 المهام الجديدة: {total_tasks}
+✅ المكتملة: {done}
+🔄 قيد التنفيذ: {in_progress}
+❌ الفاشلة: {failed}
+📈 نسبة الإنجاز: {round((done/total_tasks*100) if total_tasks > 0 else 0, 1)}%
+
+📌 أعلى الأقسام:
+"""
+        depts = Counter([t.department for t in tasks_24h])
+        for dept, count in depts.most_common(3):
+            report += f"   - {dept}: {count} مهمة\n"
+        
+        redis_client.setex("aidt:daily_report:latest", 86400 * 7, report)
+        logger.info(f"[REPORT] Generated ({total_tasks} tasks)")
+        return report
+    except Exception as e:
+        import traceback
+        logger.error(f"[REPORT] Error: {e}")
+        logger.error(f"[REPORT] Traceback: {traceback.format_exc()}")
+        return None
+    finally:
+        db.close()
+
+
+# ============ Daily Report Scheduler (Independent) ============
+
+async def daily_scheduler():
+    """يولّد تقرير يومي كل يوم 9:00 UTC."""
+    from datetime import datetime, timezone
+    logger.info("[SCHEDULER] Daily report scheduler started")
+    while True:
+        try:
+            await asyncio.sleep(60)  # نتحققوا كل دقيقة
+            now = datetime.now(timezone.utc)
+            today_key = f"aidt:report_sent:{now.strftime('%Y-%m-%d')}"
+            
+            # نولّدوا التقرير إذا الوقت >= 9:00 وما تولّدش اليوم
+            if now.hour >= 9 and not redis_client.exists(today_key):
+                logger.info("[SCHEDULER] Generating daily report...")
+                await generate_daily_report()
+                redis_client.setex(today_key, 86400, "1")
+                logger.info("[SCHEDULER] Daily report sent for today")
+        except Exception as e:
+            logger.error(f"[SCHEDULER] Error: {e}")
