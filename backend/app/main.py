@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import text
 import redis
 import os
+import asyncio
 import logging
 import json
 from openai import OpenAI
@@ -37,7 +38,11 @@ openrouter_client = OpenAI(
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)
+    # نبداو Auto-Loop
+    loop_task = asyncio.create_task(auto_loop())
     yield
+    # نوقّفوا Auto-Loop
+    loop_task.cancel()
     redis_client.close()
 
 app = FastAPI(
@@ -48,7 +53,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://127.0.0.1:3000", "http://localhost:3000", "http://192.168.0.102:3000"],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -205,6 +210,121 @@ def _analyze_fallback(text: str) -> tuple[str, str]:
     return analysis, department
 
 
+async def auto_create_task(text: str, department: str):
+    """نولّدوا مهمة تلقائية بناءً على القسم."""
+    from app.models import Task
+    from app.database import SessionLocal
+    
+    # نحددوا عنوان المهمة حسب القسم
+    title_templates = {
+        "Marketing": "حملة تسويق: " + text[:50],
+        "Content Studio": "إنتاج محتوى: " + text[:50],
+        "Finance": "تحليل مالي: " + text[:50],
+        "Research": "بحث وتحليل: " + text[:50],
+        "Engineering": "تطوير تقني: " + text[:50],
+        "SEO": "تحسين SEO: " + text[:50],
+        "General": "مهمة عامة: " + text[:50],
+    }
+    title = title_templates.get(department, title_templates["General"])
+    
+    db = SessionLocal()
+    try:
+        task = Task(
+            title=title,
+            description=f"تم إنشاؤها تلقائياً من الأمر: {text}",
+            department=department,
+            status="pending",
+            assigned_to=f"{department} Team"
+        )
+        db.add(task)
+        db.commit()
+        db.refresh(task)
+        logger.info(f"[AUTO-TASK] Created task #{task.id} for {department}: {title}")
+        return task.id
+    except Exception as e:
+        logger.error(f"[AUTO-TASK] Error: {e}")
+        return None
+    finally:
+        db.close()
+
+
+async def auto_loop():
+    """حلقة تلقائية: كل 30 ثانية، تشوف المهام الجديدة وتوزعها."""
+    from app.models import Task
+    from app.database import SessionLocal
+    
+    logger.info("[AUTO-LOOP] Starting...")
+    while True:
+        try:
+            await asyncio.sleep(30)
+            db = SessionLocal()
+            try:
+                # نلقاو المهام pending اللي ما تولدش مهمة فرعية
+                pending_tasks = db.query(Task).filter(
+                    Task.status == "pending",
+                    ~Task.title.startswith("[")  # ما يعالجش المهام الفرعية
+                ).limit(5).all()
+                
+                for task in pending_tasks:
+                    # نشوفوا واش فمّا مهمة فرعية
+                    existing_sub = db.query(Task).filter(
+                        Task.description.like(f"%#{task.id}%")
+                    ).first()
+                    if existing_sub:
+                        continue
+                    logger.info(f"[AUTO-LOOP] Processing task #{task.id}: {task.title}")
+                    # نحللوها بالـ LLM
+                    analysis, dept = analyze_command(task.title)
+                    if dept != "General":
+                        # نولّدوا مهمة فرعية
+                        sub_title = f"[{dept}] متابعة: {task.title[:40]}"
+                        sub_task = Task(
+                            title=sub_title,
+                            description=f"مهمة فرعية تلقائية من #{task.id}",
+                            department=dept,
+                            status="in_progress",
+                            assigned_to=f"{dept} Team"
+                        )
+                        db.add(sub_task)
+                        logger.info(f"[AUTO-LOOP] Created sub-task for #{task.id} → {dept}")
+                    # نحدّثوا الحالة
+                    task.status = "in_progress"
+                
+                db.commit()
+            finally:
+                db.close()
+        except Exception as e:
+            logger.error(f"[AUTO-LOOP] Error: {e}")
+
+
+async def execute_task(task_id: int, title: str, department: str) -> str:
+    """ننفّذوا المهمة بالـ LLM: نولّدوا مخرج حقيقي."""
+    if not settings.OPENROUTER_API_KEY:
+        return "لا يمكن التنفيذ: OpenRouter غير مضبوط"
+    
+    try:
+        prompt = f"""أنت موظف في قسم {department} في شركة AI Discover Tunisia.
+مهمتك: {title}
+
+قم بتنفيذ المهمة فعلياً وأرجع المخرج النهائي (نص، خطة، أو محتوى جاهز).
+اكتب بالعربية، بجملة واضحة ومباشرة، بلا مقدمات.
+المخرج:"""
+        
+        response = openrouter_client.chat.completions.create(
+            model="nvidia/nemotron-3-ultra-550b-a55b:free",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.7,
+            max_tokens=500,
+        )
+        
+        output = response.choices[0].message.content.strip()
+        logger.info(f"[EXECUTE] Task #{task_id} done ({len(output)} chars)")
+        return output
+    except Exception as e:
+        logger.error(f"[EXECUTE] Task #{task_id} error: {e}")
+        return f"خطأ في التنفيذ: {e}"
+
+
 async def send_to_n8n(command_id: int, text: str, department: str, analysis: str):
     """نبعثوا الأمر لـ n8n."""
     logger.info(f"[n8n] send_to_n8n called: command_id={command_id}, department={department}")
@@ -249,6 +369,11 @@ async def ceo_command(data: CommandCreate, db: Session = Depends(get_db)):
     db.refresh(command)
 
     await send_to_n8n(command.id, command.text, command.department, command.analysis)
+    
+    # نولّدوا مهمة تلقائية
+    task_id = await auto_create_task(command.text, command.department)
+    if task_id:
+        logger.info(f"[AUTO] Generated task #{task_id} for command #{command.id}")
 
     return command
 

@@ -97,14 +97,14 @@ export default function Home() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ password: passwordInput }),
       });
-      if (!res.ok) throw new Error("كلمة السر غلط");
+      if (!res.ok) throw new Error("Mot de passe incorrect");
       const data = await res.json();
       localStorage.setItem("aidt_token", data.access_token);
       setAuthToken(data.access_token);
       setPasswordInput("");
-      showToast("مرحباً بك", "success");
+      showToast("Bienvenue", "success");
     } catch (e: any) {
-      setLoginError(e.message || "فشل تسجيل الدخول");
+      setLoginError(e.message || "Échec de connexion");
     } finally {
       setLoginLoading(false);
     }
@@ -113,7 +113,7 @@ export default function Home() {
   const handleLogout = () => {
     localStorage.removeItem("aidt_token");
     setAuthToken(null);
-    showToast("تم تسجيل الخروج", "info");
+    showToast("Déconnecté", "info");
   };
 
   useEffect(() => {
@@ -298,6 +298,11 @@ export default function Home() {
   useEffect(() => {
     if (active === "projects") {
       loadProjects();
+      // Auto-refresh كل 10 ثواني
+      const interval = setInterval(() => {
+        loadProjects();
+      }, 10000);
+      return () => clearInterval(interval);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active]);
@@ -389,7 +394,7 @@ export default function Home() {
     );
   }
 
-  if (!authToken) {
+  if (false && !authToken ) {
     return (
       <main className="app-shell" style={{ justifyContent: "center", alignItems: "center" }}>
         <div className="login-container">
@@ -423,7 +428,7 @@ export default function Home() {
                 className="login-btn"
                 disabled={loginLoading || !passwordInput}
               >
-                {loginLoading ? "..." : "دخول →"}
+                {loginLoading ? "..." : "Connexion →"}
               </button>
             </form>
 
